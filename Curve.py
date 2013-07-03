@@ -89,6 +89,9 @@ class Curve(object):
 
         self.points = points_ndarray
         euc_length = lambda a,b: pow(sum(pow(a-b,2)),0.5)
+        # self.distances[i] is the arclength range between the ith and (i+1)th
+        # points. This is calculated so that lookups based on arc length can
+        # simply search this list
         self.distances = [(0,euc_length(self.points[0],self.points[1]))]
         for i in range(1,len(self.points)-1):
             self.distances.append((self.distances[i-1][1],
