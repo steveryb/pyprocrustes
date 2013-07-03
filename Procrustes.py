@@ -18,6 +18,7 @@ score their closeness.
 """
 import math
 import numpy
+from Curve import Curve
 class Procrustes(object):
     def __init__(self,reference_curve):
         """
@@ -72,12 +73,17 @@ class Procrustes(object):
     @staticmethod
     def rotate(ref_curve, curve):
         """
-        P.rotate(numpy.ndarray,numpy.ndarray) -> numpy.ndarray
+        P.rotate(numpy.ndarray,numpy.ndarray) -> (numpy.ndarray,numpy.ndarray)
 
         Rotate the curve around the reference curve in order to minimise the
         root mean squared deviation of the one curve from the other. This uses
         Kabsch's algorithm to calculate the optimum rotation matrix to this.
+        This expects both curves to have the same number of points.
+
+        Return the reference curve and the rotated curve respectively.
         """
+        if(ref_curve.shape[0] != curve.shape[0]):
+            return TypeError("Curves have different numbers of points")
         # step 1) calculate co_variance matrix
         co_variance_matrix = numpy.transpose(ref_curve).dot(curve)
         # step 2) use single value decomposition to represent our co_variance
@@ -94,6 +100,7 @@ class Procrustes(object):
         # now apply that rotation matrix to every point in the curve
         return numpy.array([rotation_matrix.dot(point) for point in
         curve])
+
     @staticmethod
     def superposition(ref_curve,curve):
         """
@@ -104,17 +111,27 @@ class Procrustes(object):
         using the reference curve as the template for the rotation of the other
         curve. The output will be a tuple with the refence curve and the other
         curve superposed respectively.
+
+        Note that if the curves don't have the same number of points, this will
+        take the curve with the smaller number of points and reparameterise the
+        linear interpolation of its points using arclength.
         """
+        # firstly, we need to make sure the ref_curve and the other curve have
+        # the same number of points.
+        num_points = max([c.shape[1] for c in [ref_curve,curve]])
+        ref_curve_c,curve_c = [Curve(c).gen_num_points(num_points) for c in [ref_curve,curve]]
         s_ref_curve,s_curve = [Procrustes.scale(Procrustes.translate(curve)) 
-                                                for curve in [ref_curve,curve]]
+                                                for curve in
+                                                [ref_curve_c,curve_c]]
         return (s_ref_curve, Procrustes.rotate(s_ref_curve,s_curve))
     
     @staticmethod
     def distance(ref_curve,curve):
         pass
 if __name__ == "__main__":
-    a = Procrustes(numpy.array([[1,2,3],[4,5,6],[7,8,9]]))
+    a = numpy.array([[1,1,1],[2,2,2],[3,3,3]])
+    b = numpy.array([[1,1,1],[3,3,3]])
+    print Procrustes.superposition(a,b)
 
-    print(Procrustes.rotate(a.reference_curve,numpy.array([[1,2,3],[4,5,6],[7,8,9]])))
     
     
