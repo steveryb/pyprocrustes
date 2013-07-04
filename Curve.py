@@ -5,8 +5,12 @@ reparameterisation and distance calculations
 """
 import math
 import numpy
-
+from KDTree import KDTree
 class Curve(object):
+    """
+    A representation of a curve which is defined by points which are then
+    linearly interpolated
+    """
     def __init__(self, points_ndarray):
         """
         C.__init__(numpy.ndarray)
@@ -97,11 +101,21 @@ class Curve(object):
             self.distances.append((self.distances[i-1][1],
                     self.distances[i-1][1]+euc_length(self.points[i],self.points[i+1])))
         self.arc_length = float(self.distances[-1][1])
+        self.kdtree = None
 
 
+    def find_nearest_point(self,point):
+        """
+        C.find_nearest_point([x,y,z]) -> [x,y,z]
+
+        Find the closest point on the curve to the one given.
+        """
+        if not self.kdtree: # only generate if nearest point is wanted
+            self.kdtree = KDTree(points_ndarray)
+        return self.kdtree.nearest_neighbour(point).datum
     def __str__(self):
         """
-        s.__str___()
+        s.__str__()
 
         Give the string representation of the points this curve currently is
         storing.

@@ -1,7 +1,9 @@
 import numpy
-# TODO: document
 class Node(object): 
-    def __init__(self,datum,axis,left_child,right_child,parent):
+    """
+    A simply node for a binary k-d tree
+    """
+    def __init__(self,datum,left_child,right_child,axis=0,parent=None):
         """
         Create a new binary node
         """
@@ -14,6 +16,8 @@ class Node(object):
     @staticmethod 
     def inorder(node):
         """
+        N.(Node) -> str
+
         Give a string representation of the in order traversal of a binary tree
         of nodes, with each node's contents separated by each others by spaces
         """
@@ -27,17 +31,24 @@ class Node(object):
         return output
 
 class KDTree(object):
+    """
+    A k-d tree equipped with a nearest neighbour method.
+    """
     def __init__(self, points):
         """
         Create a new k-d tree with the given points
         """
-
+        # TODO: port to using numpy
+        points = list(points)
         def kdtree(points_left, axis=0):
             """
-            Recursive helper function to create a kdtree
+            kdtree(list, int) -> node
+
+            Recursive helper function to create a kdtree from a set of points.
+            Returns the root of the tree.
             """
             # reached leaf
-            if not points_left:
+            if not len(points_left):
                 return None
             
             # each level of a kdtree must have a different axis, so we cycle
@@ -49,9 +60,9 @@ class KDTree(object):
             median = len(points_left) // 2
          
             node = Node(numpy.array(points_left[median]), # datum
-                        axis, # axis
                         kdtree(points_left[:median], axis + 1), # left
                         kdtree(points_left[median + 1:], axis + 1), # right
+                        axis, # axis
                         None) # parent
 
             # add parents to children if necessary
@@ -64,26 +75,29 @@ class KDTree(object):
     @staticmethod
     def traverse_down(p,n):
         """
-        Recursive function to find where the point given belongs w.r.t. the
-        node given
+        K.traverse_down([x,y,z],Node) -> Node
+
+        Recursive function to find where the node would be found according to
+        the ordering properties for the KDTree.
         """
         if not(n.left or n.right):
             return n
         axis = n.axis
         if p[axis] <= n.datum[axis]:
             if n.left:
-                return traverse_down(p,n.left)
+                return KDTree.traverse_down(p,n.left)
             else: return n
         else:
             if n.right:
-                return traverse_down(p,n.right)
+                return KDTree.traverse_down(p,n.right)
             else: return n
 
-    # TODO: test test and test again
     def nearest_neighbour(self,point):
         """
-        Finds the point in the k-d tree which has the smallest euclidean
-        distance from the point given.
+        K.nearest_neighbour([x,y,z]) -> Node
+
+        Finds the node in the k-d tree which has the smallest euclidean
+        distance stored in its datum from the point given.
         """
         point = numpy.array(point)
         euc_length_squared = lambda a,b: pow(sum(pow(a-b,2)),0.5)
@@ -91,21 +105,21 @@ class KDTree(object):
         closest_node = None
 
 
-        node = traverse_down(point,self.root)
+        node = KDTree.traverse_down(point,self.root)
         visited_nodes = set() # TODO: find better way to do this
         while(node.parent):
             # add nodes to visited
             visited_nodes.add(node)
 
             # check if distance lower
-            dist = euc_length(node.datum,point)
+            dist = euc_length_squared(node.datum,point)
             if dist < lowest_dist:
                 closest_node = node
                 lowest_dist = dist
 
             # look at next node
             node = node.parent
-            dist = euc_length(node.datum,point)
+            dist = euc_length_squared(node.datum,point)
             if dist < lowest_dist:
                 closest_node = node
                 lowest_dist = dist
@@ -115,5 +129,5 @@ class KDTree(object):
                 if child and (child not in visited_nodes):
                     diff = abs(child.datum[child.axis] - point[child.axis])
                     if diff < lowest_dist:
-                        node = traverse_down(point,child)
+                        node = KDTree.traverse_down(point,child)
         return closest_node

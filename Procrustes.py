@@ -53,7 +53,7 @@ def scale(curve):
     that curve so that the root mean square deviation from the points to the
     origin is 1.
     """
-    return curve/Procrustes.rmsd(curve)
+    return curve/rmsd(curve)
 
 
 
@@ -105,11 +105,14 @@ def superposition(ref_curve,curve):
     # firstly, we need to make sure the ref_curve and the other curve have
     # the same number of points.
     num_points = max([c.shape[1] for c in [ref_curve,curve]])
-    ref_curve_c,curve_c = [Curve(c).gen_num_points(num_points) for c in [ref_curve,curve]]
-    s_ref_curve,s_curve = [Procrustes.scale(Procrustes.translate(curve)) 
+    if ref_curve.shape[0] > curve.shape[0]:
+        curve = Curve(curve).gen_num_points(ref_curve.shape[0])
+    else:
+        ref_curve = Curve(ref_curve).gen_num_points(curve.shape[0])
+    s_ref_curve,s_curve = [scale(translate(curve)) 
                                             for curve in
-                                            [ref_curve_c,curve_c]]
-    return (s_ref_curve, Procrustes.rotate(s_ref_curve,s_curve))
+                                            [ref_curve,curve]]
+    return (s_ref_curve, rotate(s_ref_curve,s_curve))
 
 
 def min_distance(ref_curve,curve):
@@ -122,13 +125,11 @@ def min_distance(ref_curve,curve):
     Returns an array of tuples, each corresponding to the original
     points on the curve giving the minimum distance to the reference curve.
     """
-    # TODO: make this far less naive through:
-    # - Getting the distance to the line made by the linear interpolation of
-    #   the two closest points 
-    # - Findind a much faster way of calculating this than n**2
-    euc_length_squared = lambda a,b: sum(pow(a-b,2))
-    return tuple((min(euc_length_squared(point,ref_point) for ref_point in ref_curve)
-                                                                for point in curve))
+    euc_length = lambda a,b: pow(sum(pow(a-b,2)),0.5)
+    ref_curve_c = Curve(ref_curve)
+    print(str(ref_curve_c),curve)
+    return\
+        tuple((euc_length(ref_curve_c.find_nearest_point(point),point) for point in curve))
 
 def procrustes_distance(ref_curve,curve):
     """
@@ -142,6 +143,10 @@ def procrustes_distance(ref_curve,curve):
     Uses superposition and min_distance, see those methods for caveats and
     details
     """
-    super_imposed = Procrustes.superposition(ref_curve,curve)
-    distances = Procrustes.min_distance(*super_imposed)
+    super_imposed = superposition(ref_curve,curve)
+    distances = min_distance(*super_imposed)
+    print("dist",distances)
     return pow(sum(distances),0.5)
+
+if __name__ == "__main__":
+    print(procrustes_distance(numpy.array([[1,1,1],[2,2,2],[3,3,3],[4,4,4]]),numpy.array([[1,1,1],[3,3,3]])))
