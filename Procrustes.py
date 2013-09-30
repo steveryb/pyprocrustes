@@ -16,10 +16,10 @@ and then removes the rotational component from the curve being compared to get
 the curves optimally "superimposed". Then, we apply some distance function to
 score their closeness.
 """
+from __future__ import division
 import math
 import numpy
 from Curve import Curve
-
 def translate(curve):
     """
     P.translate(numpy.ndarray) -> numpy.ndarray
@@ -71,7 +71,7 @@ def rotate(ref_curve, curve):
     if(ref_curve.shape[0] != curve.shape[0]):
         return TypeError("Curves have different numbers of points")
     # step 1) calculate co_variance matrix
-    co_variance_matrix = numpy.transpose(ref_curve).dot(curve)
+    co_variance_matrix = numpy.transpose(curve).dot(ref_curve)
     # step 2) use single value decomposition to represent our co_variance
     # matrix as the product of matrices v s w.
     v,s,w = numpy.linalg.svd(co_variance_matrix)
@@ -114,22 +114,25 @@ def superposition(ref_curve,curve):
                                             [ref_curve,curve]]
     return (s_ref_curve, rotate(s_ref_curve,s_curve))
 
-
-def min_distance(ref_curve,curve):
+def min_distance(ref_curve,curve,acc=1):
     """
     P.min_distance(numpy.ndarray,numpy.ndarray) -> (int)
 
     For each point in a curve, find the smallest distance from it to the
     reference curve.
 
-    Returns an array of tuples, each corresponding to the original
-    points on the curve giving the minimum distance to the reference curve.
+    Returns the total distance between all points on the curve calculated to a
+    certain accuracy acc
     """
     euc_length = lambda a,b: pow(sum(pow(a-b,2)),0.5)
     ref_curve_c = Curve(ref_curve)
-    print(str(ref_curve_c),curve)
-    return\
-        tuple((euc_length(ref_curve_c.find_nearest_point(point),point) for point in curve))
+    #print("comparing distance")
+    calc_dist = lambda r: sum((euc_length(r.find_nearest_point(point),point) for point in curve))
+    #ref_distance = calc_dist(ref_curve_c)
+    #ref_curve_c.set_points(ref_curve_c.gen_num_points(ref_curve_c.points.shape[0]*2))
+    distance = calc_dist(ref_curve_c)
+    #print(ref_distance,distance)
+    return pow(distance,0.5)
 
 def procrustes_distance(ref_curve,curve):
     """
@@ -145,8 +148,10 @@ def procrustes_distance(ref_curve,curve):
     """
     super_imposed = superposition(ref_curve,curve)
     distances = min_distance(*super_imposed)
-    print("dist",distances)
-    return pow(sum(distances),0.5)
+    return distances
 
 if __name__ == "__main__":
-    print(procrustes_distance(numpy.array([[1,1,1],[2,2,2],[3,3,3],[4,4,4]]),numpy.array([[1,1,1],[3,3,3]])))
+    print(procrustes_distance(numpy.array([[1,1,1],[2,2,2],[3,3,3],[4,4,4]]),numpy.array([[-1,0,0],[-3,0,0]])))
+    print(procrustes_distance(numpy.array([[1,1,1],[2,2,2],[3,3,3],[4,4,4]]),numpy.array([[1,0,0],[3,0,0]])))
+    print(procrustes_distance(numpy.array([[1,1,1],[2,2,2],[3,3,3],[4,4,4]]),numpy.array([[0,0,0],[3,0,0]])))
+    print(procrustes_distance(numpy.array([[1,1,1],[2,2,2],[3,3,3],[4,4,4]]),numpy.array([[1,1,1],[1.1,1.1,1.1]])))

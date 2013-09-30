@@ -43,13 +43,12 @@ class Curve(object):
         top_limit = len(self.distances)-1
         bottom_limit = 0
         while top_limit != bottom_limit:
-            middle = int((top_limit-bottom_limit)//2)
-            top_dist, bottom_dist = self.distances[middle]
-
+            middle = bottom_limit + int((top_limit-bottom_limit)//2)
+            bottom_dist,top_dist = self.distances[middle]
             if bottom_dist <= t < top_dist:
                 top_limit = bottom_limit = middle
             elif t < bottom_dist:
-                top_limit = middle
+                top_limit = middle-1
             elif t >= top_dist:
                 bottom_limit = middle+1
         
@@ -111,8 +110,9 @@ class Curve(object):
         Find the closest point on the curve to the one given.
         """
         if not self.kdtree: # only generate if nearest point is wanted
-            self.kdtree = KDTree(points_ndarray)
+            self.kdtree = KDTree(self.points)
         return self.kdtree.nearest_neighbour(point).datum
+
     def __str__(self):
         """
         s.__str__()
